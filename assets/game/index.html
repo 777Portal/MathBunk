@@ -1,0 +1,108 @@
+<!DOCTYPE html>
+<head>
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.19/dist/katex.css" integrity="sha384-SnvKCVpWlqAHp0BAPjxL1N8sfsapoYgnRfI5QefCb2uZ92hj01Q9rnHeiMsGJ+mT" crossorigin="anonymous">
+    <link href="/assets/game/css/client.css" rel="stylesheet">
+    <link href="/assets/game/css/login.css" rel="stylesheet">
+</head>
+
+<html>
+    <div id="problemHolder" class="problemHolder">
+        <div class="problemWrapper" style="display: none;">
+            <h1 class="pad" id="problemInfo">Problem</h1>
+            <div class="pad" id="problem">
+                no problem loaded
+            </div>
+        </div>
+    </div>
+    
+    <div class="vignette" id="vignette"></div>
+    
+    <body style="align-content: center; float:left;">
+        <h2 style="position: absolute;" id="generalDebug">Wasd</h2>
+        <div id="debugMenu" style="display: none; position: absolute; text-align: center;" class="card">
+            <h1>Dev menu</h1>
+            <hr>
+            <div>
+                <h2 id="debug">
+                    WASD to move.
+                </h2>
+                <br>
+                <input id="debugGridEnabled" type="checkbox"> debug grid?
+                <br>
+                <input id="fullbright" type="checkbox"> fullbright?
+                <br>
+                <input id="ghostTracers" type="checkbox"> Ghost tracers?
+                <br>
+                <input id="showGhostInfo" type="checkbox"> Ghost info?
+                <br>
+                <button id="record" class="secondary">Record ghost</button>
+                <br>
+                X-offset: <input id="x">
+                <br>
+                Y-offset: <input id="y">
+                <button class="secondary" onclick="this.parentElement.parentElement.style.display = 'none'">close window</button>  
+            </div>
+        </div>
+        <!-- <h2 style="position: absolute;" id="generalDebug">Wasd</h2> -->
+        
+        <div id="dialogueHolder" style="position: absolute; text-align: left;left: 25% ; bottom: 1%;" class="card">
+            <img id="ghostImg" style="max-width: 100px; max-height: 100px; margin-left: 1%;" src="/assets/game/missing.svg"></img>
+            <span id="ghostName" style="margin: 1%; font-size: 28px;"> 
+                loading...
+            </span>
+            <hr>
+            <div style="margin-left: 2.5%;">
+                <p id="ghostText">loading...</p>
+            </div>
+            <br>
+            <br>
+            <div id="questions">
+
+            </div>
+        </div>
+
+        <div id="promptHolder" style="position: absolute; text-align: left;left: 25% ; bottom: 1%;" class="prompts">
+            <div style="margin-left: 2.5%;">
+                <span id="ghostName" style="margin: 1%; font-size: 28px;"> 
+                    Hi!
+                    <img src="/assets/game/missing.svg">
+                    some more text
+                </span>
+            </div>
+        </div>
+
+        <ul id="inventory" class="inventory">
+            <li>
+                <span id="ghostName" style="margin: 1%; font-size: 28px;"> 
+                    item
+                    <img src="/assets/game/ui/panel_grid_paper.png">
+                </span>    
+            </li>
+            <li>
+                <span id="ghostName" style="margin: 1%; font-size: 28px;"> 
+                    item 1
+                    <img src="/assets/game/ui/panel_grid_paper.png">
+                </span>    
+            </li>
+            <li>
+                <span id="ghostName" style="margin: 1%; font-size: 28px;"> 
+                    item 10
+                    <img src="/assets/game/ui/panel_grid_paper.png">
+                </span>    
+            </li>
+        </ul>
+        
+        <canvas onclick="document.getElementById('audio').play;" id="canvas"></canvas>
+    </body>
+    
+    <script src="https://cdn.socket.io/4.4.0/socket.io.min.js" integrity="sha384-1fOn6VtTq3PWwfsOrk45LnYcGosJwzMHv+Xh/Jx5303FVOXzEnw0EpLv30mtjmlj" crossorigin="anonymous"></script>
+    <script type="text/javascript" src="/assets/game/worlds/firstWorld.js"></script>
+    <script type="text/javascript" src="/assets/game/worlds/manifest.js"></script>
+    <script type="text/javascript" src='/assets/game/js/perlin.js'></script>
+    <script type="text/javascript" src="/assets/game/js/helper.js"></script>
+    <script type="text/javascript" src="assets/game/js/test.js"></script>
+
+    <img id="cursor" src="assets/cursor.png" width="25" height="25" />
+    
+    <source id="audio" src="assets/music/Gregor Quendel - Schubert - 4 Impromptus, No. 4 - D. 935, Op. 142.mp3.mp3" style="position: absolute;" type="audio/ogg">
+</html>

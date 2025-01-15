@@ -1,0 +1,3 @@
+WORLDS = [
+    firstWorld,
+]
