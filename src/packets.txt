@@ -1,0 +1,7 @@
+Outgoing
+ - UPDATE (updates player x and y)
+ - MINE (has resource that is to be mined and the problem)
+ - RECUP (updates resource)
+Incoming
+  - UPDATE (updates player's direction json)
+  - MINE (reqests to mine resource)
