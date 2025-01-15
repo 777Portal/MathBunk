@@ -4,6 +4,7 @@ const {
   dbUri: uri,
 } = require('../../config/config.json');
 
+
 // Create a MongoClient with a MongoClientOptions object to set the Stable API version
 const client = new MongoClient(uri, {
   serverApi: {
@@ -48,6 +49,21 @@ async function save(database, collection, json) {
   return true;
 }
 
+async function update(database, collectionName, key, value, updateValue) {
+  if (!database || !collectionName || !key || !value) return;
+
+  const collection = client.db(database).collection(collectionName);
+  const query = { [key]: value };
+
+  try {
+    const updated = await collection.updateOne(query, { $set: updateValue });
+    return updated;
+  } catch (error) {
+    console.log(error);
+    return false;
+  }
+}
+
 async function checkIfKeyExists(database, collectionName, key, value) {
   if (!database || !collectionName || !key || !value) return
   const collection = client.db(database).collection(collectionName);
@@ -84,5 +100,6 @@ module.exports = {
   initConnection,
   checkIfKeyExists,
   findOne,
-  closeConnection
+  closeConnection,
+  update
 };

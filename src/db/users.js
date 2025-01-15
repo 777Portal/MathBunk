@@ -1,20 +1,32 @@
 const db = require('./db.js');
 
-async function updateUser(email) { // need to work on
+async function updateUser(email, update) { // need to work on
     const client = await db.get();
     const clientDb = client.db("mathbunk");
     const coll = clientDb.collection("users");
 
-    // db.collection.update(query, update, options)
+    const updated = await db.update("mathbunk", "users", "email", email, update);
+    return updated
 }
+
+async function checkIfEmailExists(email){
+    const emailAlreadyExists = await db.checkIfKeyExists("mathbunk", "users", "email", email);
+    return emailAlreadyExists
+}
+
+async function checkIfUsernameExists(username){
+    const usernameAlreadyExists = await db.checkIfKeyExists("mathbunk", "users", "username", username);
+    return usernameAlreadyExists
+}
+
 
 async function createUser(json) {
     const { email, username } = json;
 
-    const emailAlreadyExists = await db.checkIfKeyExists("mathbunk", "users", "email", email);
+    const emailAlreadyExists = await checkIfEmailExists(email);
     if (emailAlreadyExists) return {succeded: false, code:"email_already_exists", reason:"Email already exists"};
     
-    const usernameAlreadyExists = await db.checkIfKeyExists("mathbunk", "users", "email", email);
+    const usernameAlreadyExists = await checkIfUsernameExists(email);
     if (usernameAlreadyExists) return {succeded: false, code:"username_already_exists", reason:"username already exists."};
 
     const client = await db.get();
@@ -24,14 +36,23 @@ async function createUser(json) {
     const user = {
         email,
         username,
-        position: { x: 0, z: 0 },
-        world: "tutorial",
+        position: { 
+            x: 0, 
+            y: 0, 
+            offsetX:0,
+            offsetY:0,
+            sprinting: false,
+            moving:{ left: false, right: false, down: false, up: false},
+            facing:"left"
+        },
+        world: 0,
         badges: {},
         currency: {},
         friends: {},
+        inventory: {},
         avatar: {},
         firstJoined: Date.now(),
-        lastOnline: Date.now()
+        lastSeen: Date.now()
     };
 
     try {
@@ -60,7 +81,7 @@ async function deleteUser(email) {
     }
 }
 
-async function deleteUser(email) {
+async function getUser(email) {
     const client = await db.get();
     const clientDb = client.db("mathbunk");
     const coll = clientDb.collection("users");
@@ -78,5 +99,6 @@ async function deleteUser(email) {
 
 module.exports = {
     createUser,
-    deleteUser
+    deleteUser,
+    updateUser
 };
