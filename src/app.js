@@ -61,49 +61,73 @@ process.on('exit', async (code) => {
 });
 
 // wss stuff
-const sockets = {};
+function generateProblem() {
+  let problemVars = {};
+  let problemsArr = Object.values(problems);
+  // let randomQuestionIndex = getRandomInt(0, Object.keys(questions).length - 1);
+  randomQuestionIndex = 0
+  let question = problemsArr[randomQuestionIndex];
 
-function generateProblem(){
-  let problemVars = {}
-  let randomQuestionIndex = getRandomInt(0, Object.keys(questions).length - 1)
-  let question = questions[randomQuestionIndex]
-
-  console.log(questions[0], JSON.stringify(questions))
+  console.log(problemsArr[0], JSON.stringify(problemsArr));
 
   let vars = question.vars;
 
-  for (let questionVar in vars){
-    let split = question.split("[")
-
-    let questionFunction = split[0]
-    questionFunction = questionFunction.toLowerCase()
-    let arguments = split[1].split("_")
+  for (let questionVar in vars) {
+    let varDefinition = vars[questionVar]; 
     
-    switch (questionFunction) {
+    let split = varDefinition.split("(");
+    let functionName = split[0].toLowerCase();
+    let args = split[1].replace(")", "").split(",");
+
+    args = args.map(arg => parseInt(arg, 10));
+
+    switch (functionName) {
       case "getrandomint":
-        problemVars[questionVar] = getRandomInt(arguments[0], arguments[1])
-        break
+        console.log(JSON.stringify(args))
+        problemVars[questionVar] = getRandomInt(args[0], args[1]);
+        break;
       default:
+        console.error(`Unknown function: ${functionName}`);
         break;
     }
   }
-  console.log(JSON.stringify(problemVars))
+
+  let questionEquation =  question.actualEquation
+  let problemQuestion = question.problem
+
+  for (let variable in problemVars){
+    problemQuestion = problemQuestion.replaceAll(`_${variable}_`, problemVars[variable])
+    problemQuestion = problemQuestion.replaceAll(`\n`, "<br>")
+    questionEquation = questionEquation.replaceAll(variable, problemVars[variable])
+    console.log(`filled ${variable}`)
+  }
+
+  console.log(questionEquation, problemQuestion);
+  let useKatex = question.type
+  
+  let questionAnswer = eval(questionEquation)
+
+  return {questionAnswer, problemQuestion, useKatex}
 }
 
 function getRandomInt(min, max){
   return Math.floor(Math.random() * (max - min + 1) + min);
 }
 
-let questions = {
+let problems = {
   question:{
-    type: "dynamic",
-    // 2x + 5 = 11
+    type: "static",
     vars: {
-      b: "getRandomInt[19_19",
-      a: "divide[b_2",
-      c: "getRandomInt[1_999"
-    },
-    problem: "A = B / 2"
+      fenceLength: "getRandomInt(50,100)",
+      tomRate: "getRandomInt(2,10)",
+      huckRate: "getRandomInt(3,12)",
+      tomSoloTime: "getRandomInt(1,5)",
+      combinedTime: "getRandomInt(1,5)",
+      huckSoloTime: "getRandomInt(1,5)" 
+    },    
+    //     actualEquation: "tomRate * tomSoloTime + ( tomRate + huckRate ) * combinedTime + huckRate * huckSoloTime",
+    actualEquation: "tomRate * tomSoloTime + ( tomRate + huckRate ) * combinedTime + huckRate * huckSoloTime",
+    problem: "Tom is painting a fence _fenceLength_ feet long. \nHe starts at the West end of the fence and paints at a rate of _tomRate_ feet per hour.\nAfter _tomSoloTime_ hours, Huck joins Tom and begins painting from the East end of the fence at a rate of _huckRate_ feet per hour. \nAfter _combinedTime_ hours of the two boys painting at the same time, Tom leaves Huck to finish the job by himself.\m\nIf Huck completes painting the entire fence after Tom leaves, how many more hours will Huck work than Tom?"
   },
   question2:{
     type: "dynamic",
@@ -123,11 +147,52 @@ let questions = {
   }
 }
 
+let hiddenNodes = []; // nodes that are used
+
+const sockets = {};
+
+function updateUsers(){
+  let players = {}
+  
+  for (socketIndex in sockets){
+    let targetSocket = sockets[socketIndex]
+    let info = targetSocket.request.session.info
+
+    if (!info || !targetSocket) continue;
+  
+    let {username, position} = info
+    let {x, y, moving} = position
+
+    players[username] = {x, y, moving, username}
+
+    // console.log("\n" + JSON.stringify(info.request.session.info));
+    // console.log("- Updating player: " + username);
+  }
+
+  for (socketIndex in sockets){
+    let targetSocket = sockets[socketIndex]
+    let info = targetSocket.request.session.info
+
+    let closestPlayers;
+
+    closestPlayers = Object.values(players).filter(player => {
+      const distance = getDistance(info.position.x, player.x, info.position.y, player.y)
+      if (info.username == player.username) return false;
+      return distance <= 10000;
+    });
+
+    if (closestPlayers.length < 0) return;
+
+    targetSocket.emit('UPD', { closestPlayers })
+  }
+}
+
 io.on('connection', async (socket) => {
   socketSessionData = socket.request.session
   
   // check auth, if no auth kick em.
   if (!socketSessionData || !socketSessionData.authenticated) {
+    socket.emit( 'tbAlert', {text: 'Not logged in...', duration:1} )
     socket.emit( 'CloseConn', {reason: 'You are not logged in!<br><a href="/auth/google">sign in?</a>'} )
     return socket.disconnect(true);
   }
@@ -135,13 +200,13 @@ io.on('connection', async (socket) => {
   let data = await db.findOne("mathbunk", "users", {"email": socketSessionData.passport.user.email});
   socket.request.session.info = data
 
-  // console.log(JSON.stringify(socketSessionData))
-
   // to acess user data
   let session = socket.request.session
   let info = session.info;
   session.ssocid = socket.id;
   
+  socket.emit( 'tbAlert', {text: `Logged in as ${info.username}`, duration: 5000} )
+
   if (!session.ssocid) {
     socket.emit( 'CloseConn', {showLogin: false, reason: 'SSOCID missing [Error code 0]'} )
     return socket.disconnect(true);
@@ -149,12 +214,15 @@ io.on('connection', async (socket) => {
 
   // to iterate over all sockets if we want to send smth in the future
   sockets[socket.id] = socket;
-
+  
   // debug stuff
   socket.onAny((event, ...args) => {
     // console.log(event, args);
   });
   
+  inventory = info.inventory
+  socket.emit("RECUP", inventory)
+
   let localInterval = setInterval(async () => {
     if (session.ssocid !== socket.id) // to prevent funny bug where you could just have multiple tabs open at the same time to get money faster :P
     {
@@ -183,9 +251,20 @@ io.on('connection', async (socket) => {
 
     let serverObjects = getObjects(offsetX,offsetY, rows, cols)
 
-    socket.emit( 'RENDER', {x, y, offsetX, offsetY, serverObjects});
-  }, 16.7);
+    let nodesToHide = [];
 
+    if (hiddenNodes.length > 0) {
+      nodesToHide = hiddenNodes.filter(node => {
+        // console.log(node)
+        const distance = getDistance(x, node.x, y, node.y)
+        // console.log(distance)
+        return distance <= 10000;
+      });
+    }
+
+    updateUsers();
+    socket.emit( 'RENDER', {x, y, offsetX, offsetY, serverObjects, nodesToHide});
+  }, 16.7);
 
   socket.on("MINE", (arg) => {
     pos = info.position
@@ -194,36 +273,65 @@ io.on('connection', async (socket) => {
     // console.log(JSON.stringify(nodeLocations.trees))
 
     let closest = getClosestObject(nodeLocations, pos.offsetX, pos.offsetY, pos.x, pos.y)
-    // console.log(closest);
+    
+    inventory = info.inventory
+        
+    socket.emit("RECUP", inventory)
+    
+    let problemJson = generateProblem();
+    problemJson.attemped = false;
+    problemJson.closest = closest;
+    info.currentQuestion = problemJson;
 
-    socket.emit("RECUP", {
-      stone:{
-        displayName: "stone",
-        thumb: "/assets/game/rocks/plainRock1.png",
-        amount: 10000000000,
-      }, 
-      wood: {
-        displayName: "wood",
-        thumb: "/assets/game/rocks/plainRock1.png",
-        amount: 21
-      }
-    })
+    let {questionAnswer, useKatex, problemQuestion} = problemJson;
+
 
     let problemInfo = "Find C"
-    let problem = katex.renderToString(`c = \\sqrt{${Math.round(Math.random()*10)}^2 + ${Math.round(Math.random()*10)}^2}`, { throwOnError: false })
+    let problem = ""
+    
+    if (useKatex == "static"){problem = `<p>${problemQuestion} \n ${questionAnswer}</p>`}
+    else problem = katex.renderToString(problemQuestion, { throwOnError: false });
+
     socket.emit("MINE", {closest}, {problemInfo, problem})
+    console.log(problemJson.questionAnswer)
   });
+
+
+  socket.on("QA", (arg) => {
+    inventory = info.inventory
+    console.log("\n\n"+arg)
+    
+    if (!info.currentQuestion) return;
+    let currentQuestion = info.currentQuestion
+    
+    let closest = currentQuestion.closest;
+    let questionAnswer = currentQuestion.questionAnswer;
+    let type = closest.type 
+    
+    console.log(questionAnswer, arg, (questionAnswer == arg))
+    if (closest.type == "bigBurnedTree") type = "tree";
+    if (questionAnswer != arg) { return socket.emit("MINE", {closest}, {problemInfo:"Incorrect!", problem:`You got the answer "<b>${arg}</b>", but the actual answer was <b>${questionAnswer}</b>`}); }
+
+    let amount = getRandomInt(10, 15)
+    let inventoryItem = inventory[type]
+    inventory[type].amount += amount;
+
+    hiddenNodes.push(closest)
+    
+    socket.emit("RECUP", inventory)
+    socket.emit( 'tbAlert', {text: `Successfully got ${amount} of ${inventoryItem.displayName}`, duration: 1500} )
+  });
+
 
   socket.on('update', (json) => {
     let pos = info.position
     let {moving, centerX, centerY, sprinting, rows, cols} = json
     
-    pos.rows = rows
-    pos.cols = cols
+    info.position.rows = rows ? rows : 11 // defaults to size of my screen cuz its better then erroring when getting closest object lol
+    info.position.cols = cols ? cols : 18
 
     let offsetX = pos.offsetX 
     let offsetY = pos.offsetY
-
 
     pos.sprinting = sprinting
 
@@ -231,6 +339,8 @@ io.on('connection', async (socket) => {
 
     pos.x = centerX+offsetX;  
     pos.y = centerY+offsetY;
+
+    updateUsers();
   })
 
   const socketStatus = {};
@@ -252,7 +362,11 @@ io.on('connection', async (socket) => {
       delete socketStatus[socket.id];
       clearInterval(localInterval)
     }
+
+    updateUsers();
   });
+
+  updateUsers();
 });
 
 
@@ -260,12 +374,22 @@ function getClosestObject(nodeLocations, offsetX, offsetY, x2, y2) {
   let searchArray = [...nodeLocations.trees, ...nodeLocations.rocks];
 
   let leastDist = { x: 0, y: 0, dist: Infinity };
-
+  
   for (let objectInfo of searchArray) {
     let { x, y } = objectInfo;
-    let distance = getDistance(x+offsetX, x2, y+offsetY, y2);
-    console.log(x, x2, y, y2)
+    let distance = getDistance(x, x2, y, y2);
+    // console.log(x, x2, y, y2)
     objectInfo.dist = distance;
+
+    let nodesToHide = hiddenNodes.filter(node => {
+            
+      let matchesX = (node.x == x)
+      let matchesY = (node.y == y)
+
+      if (matchesY && matchesX) return true;
+    })
+    
+    if(nodesToHide.length > 0) continue;
 
     if (distance < leastDist.dist) {
       leastDist = objectInfo;
@@ -273,6 +397,15 @@ function getClosestObject(nodeLocations, offsetX, offsetY, x2, y2) {
   }
 
   return leastDist.dist === Infinity ? false : leastDist;
+}
+
+
+function decimalHash(string) {
+  string
+  let sum = 0;
+  for (let i = 0; i < string.length; i++)
+      sum += (i + 1) * string.codePointAt(i) / (1 << 8)
+  return sum % 1;
 }
 
 function getObjects(offsetX, offsetY, rows, cols){
@@ -291,13 +424,13 @@ function getObjects(offsetX, offsetY, rows, cols){
       let gridX = col + startX;
       let gridY = row + startY;
 
-      let x = gridX * imgWidth - offsetX;
-      let y = gridY * imgHeight - offsetY;
+      let x = gridX * imgWidth;
+      let y = gridY * imgHeight;
 
       let locationHash = decimalHash(`${gridX * 0.0001}${gridY * 0.0001}`);
 
       if (locationHash > 0.995) {
-        nodeLocations.trees.push({ x, y, type: "bigBurnedTree" });
+        nodeLocations.trees.push({ x, y, type: "tree" });
       } else if (locationHash > 0.95) {
         nodeLocations.trees.push({ x, y, locationHash, type: "tree" });
       } else if (locationHash > 0.90) {
@@ -358,12 +491,4 @@ function checkIfMoving(moving){
   }
 
   return {moved, direction}
-}
-
-function decimalHash(string) {
-  string
-  let sum = 0;
-  for (let i = 0; i < string.length; i++)
-      sum += (i + 1) * string.codePointAt(i) / (1 << 8)
-  return sum % 1;
 }

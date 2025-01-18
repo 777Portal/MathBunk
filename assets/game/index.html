@@ -6,13 +6,18 @@
 </head>
 
 <html>
-    <div id="problemHolder" class="problemHolder">
-        <div class="problemWrapper" style="display: none;">
+    <div id="alert" class="alert"> 
+        <h1 id="alertText">Hi, this is an alert.</h1>
+    </div>
+
+    <div id="problemHolder" class="problemHolder fade">
+        <div class="problemWrapper" style="display: box;">
             <h1 class="pad" id="problemInfo">Problem</h1>
-            <div class="pad" id="problem">
+            <div class="" id="problem">
                 no problem loaded
             </div>
-        </div>
+            <input style="margin-top: 10vh;" id="problemAnswer">
+o        </div>
     </div>
     
     <div class="vignette" id="vignette"></div>
@@ -31,7 +36,7 @@
                 <br>
                 <input id="fullbright" type="checkbox"> fullbright?
                 <br>
-                <input id="ghostTracers" type="checkbox"> Ghost tracers?
+                <input id="logSocket" type="checkbox"> log socket events?
                 <br>
                 <input id="showGhostInfo" type="checkbox"> Ghost info?
                 <br>
@@ -61,13 +66,10 @@
             </div>
         </div>
 
-        <div id="promptHolder" style="position: absolute; text-align: left;left: 25% ; bottom: 1%;" class="prompts">
-            <div style="margin-left: 2.5%;">
-                <span id="ghostName" style="margin: 1%; font-size: 28px;"> 
-                    Hi!
-                    <img src="/assets/game/missing.svg">
-                    some more text
-                </span>
+        <div id="actionBar" style="position: absolute; text-align: left; left: 25%; bottom: 10%;" class="prompts">
+            <div id="ghostName" style="margin: 1%; font-size: 28px;"> 
+                <img src="/assets/game/missing.svg">
+                Wood wall
             </div>
         </div>
 
@@ -78,21 +80,9 @@
                     <img src="/assets/game/ui/panel_grid_paper.png">
                 </span>    
             </li>
-            <li>
-                <span id="ghostName" style="margin: 1%; font-size: 28px;"> 
-                    item 1
-                    <img src="/assets/game/ui/panel_grid_paper.png">
-                </span>    
-            </li>
-            <li>
-                <span id="ghostName" style="margin: 1%; font-size: 28px;"> 
-                    item 10
-                    <img src="/assets/game/ui/panel_grid_paper.png">
-                </span>    
-            </li>
         </ul>
         
-        <canvas onclick="document.getElementById('audio').play;" id="canvas"></canvas>
+        <canvas style="position: absolute; top: 0px; left: 0px; z-index: -1;" onclick="document.getElementById('audio').play;" id="canvas"></canvas>
     </body>
     
     <script src="https://cdn.socket.io/4.4.0/socket.io.min.js" integrity="sha384-1fOn6VtTq3PWwfsOrk45LnYcGosJwzMHv+Xh/Jx5303FVOXzEnw0EpLv30mtjmlj" crossorigin="anonymous"></script>

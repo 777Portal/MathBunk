@@ -2,6 +2,9 @@ Outgoing
  - UPDATE (updates player x and y)
  - MINE (has resource that is to be mined and the problem)
  - RECUP (updates resource)
+ - CloseConn (informs the client that the connect has been closeed, and includes some html to display.)
+ - tbAlert (sends some text to be displayed on the topbar alert bar)
 Incoming
   - UPDATE (updates player's direction json)
   - MINE (reqests to mine resource)
+  - QA (gets the users response to the question)

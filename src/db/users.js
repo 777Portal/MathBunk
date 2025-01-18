@@ -49,7 +49,18 @@ async function createUser(json) {
         badges: {},
         currency: {},
         friends: {},
-        inventory: {},
+        inventory: {
+            rock:{
+                displayName: "stone",
+                thumb: "/assets/game/rocks/plainRock1.png",
+                amount: 0,
+              }, 
+              tree: {
+                displayName: "wood",
+                thumb: "/assets/game/trees/Burned_tree3.png",
+                amount: 0
+              }
+        },
         avatar: {},
         firstJoined: Date.now(),
         lastSeen: Date.now()

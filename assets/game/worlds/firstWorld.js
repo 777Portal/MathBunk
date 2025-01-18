@@ -12,10 +12,40 @@ firstWorld = {
         texture1: {
             "link": "/assets/game/texture.png",
             "static": true,
-            "scale": 0.8
+            "scale": 1
         },
         "prompt_e":{
             "link": "/assets/game/keyboard prompts/prompt_e.png",
+            "static": true,
+            "scale": 0.5
+        },
+        "wall":{
+            "link": "/assets/game/keyboard prompts/prompt_e.png",
+            "static": true,
+            "scale": 1
+        },
+        "wall_diagonal":{
+            "link": "/assets/game/placeables/wall_diagonal.png",
+            "static": true,
+            "scale": 1
+        },
+        "wall_corner":{
+            "link": "/assets/game/placeables/wall_diagonal.png",
+            "static": true,
+            "scale": 1
+        },
+        "doorway":{
+            "link": "/assets/game/placeables/doorway.png",
+            "static": true,
+            "scale": 1
+        },
+        "campfire":{
+            "link": "/assets/game/placeables/campfire.png",
+            "static": true,
+            "scale": 0.5
+        },
+        "table":{
+            "link": "/assets/game/placeables/table.png",
             "static": true,
             "scale": 0.5
         },

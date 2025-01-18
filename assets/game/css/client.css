@@ -17,6 +17,7 @@ html{
     padding: 10px;
     position: absolute;
     width: 50%;
+    z-index: 999;
     /* height: 75%; */
 }
 
@@ -60,21 +61,74 @@ html{
     background-size: cover;  
 }
 
-.prompts{
-    backdrop-filter: blur(7px) saturate(98%);
-    -webkit-backdrop-filter: blur(7px) saturate(98%);
-    background-color: rgba(0, 0, 0, 0.29);
-    border-radius: 12px;
-    border: 1px solid rgba(255, 255, 255, 0.125);    
-    padding: 20px;
+.alert {    
     position: absolute;
+    width: 100%;
+    height: auto;
+
+    width:100%;
+    display: flex;
+    justify-content: center;
+}
+
+.alert * {
+    width: fit-content;
+    padding: 1%;
+    height: 100%;
+    background-image: url("/assets/game/ui/pattern_grid_blueprint.png");
+    z-index: 3;
+    border: 5px solid rgba(0, 0, 0, 0.525);    
+    border-radius: 12px;
+}
+
+.prompts {
+    background-color: rgba(0, 0, 0, 0.29);
+    border: 1px solid rgba(255, 255, 255, 0.125);    
     width: 50%;
+    height: 100px;
+
+    display: flex;
+    flex-wrap: wrap;
+    gap: 20px;
+
+    justify-content: center;
+
+    align-items: center;
+
+    margin: 0 auto;
+    padding: 0 20px;
+    box-sizing: content-box;  
+}
+
+.prompts div{
+    z-index: 999999;
+
+    width: 50px;
+    height: 50px;
+
+    min-width: 50px;
+    max-width: 50px;
+
+    padding: 5px;
+
+    overflow: show;
+    text-align: center;
+
+    border-radius: 12px;
+    
+    background-image: url("/assets/game/ui/panel_brown_damaged_dark.png");
+    background-size: cover;
+}
+
+.prompts div img{
+    width: 50px;
+    height: 50px;
+
     background-image: url("/assets/game/ui/pattern_diagonal_grey_small.png");
-    /* height: 75%; */
 }
 
 .problemHolder{
-    z-index: 1000;
+    z-index: 1;
     position: fixed;
     inset: 0px;
     width: 50vw;
@@ -86,23 +140,44 @@ html{
     background-image: url("/assets/game/ui/panel_brown_damaged_dark.png");
     width: 100%;
     height: 100%;
-    /* : 100px; */
-    /* border: 10px solid rgba(255, 255, 255, 0.125); */
-    /* border-radius: 12px; */
-    /* background-size: 100% 100%; */
     background-size: cover;
 }
 
 .problemWrapper div{
     margin: auto;
     background-image: url("/assets/game/ui/pattern_grid_paper.png");
+    
     color: black;
     border: 10px solid rgba(255, 255, 255, 0.125);
+    border-radius: 12px;
+    
     width: fit-content;
     height: fit-content;
-    border-radius: 12px;
+    max-width: 75%;
+    
+    text-align:left
 }
 
 .problemWrapper .pad {
-    padding: 10vh 10vw;
+    padding: 10vh 5vw;
 }
+
+@keyframes fadeInAnimation {
+    0% {
+        opacity: 0;
+    }
+
+    100% {
+        opacity: 1;
+    }
+}
+
+* {
+    opacity: 1;
+    transition: opacity 1s; 
+}
+  
+*.fade {
+    opacity: 0;
+}
+  

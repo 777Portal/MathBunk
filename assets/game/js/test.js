@@ -72,6 +72,7 @@ async function initWorld(world){
         return new Promise((resolve, reject) => {
             img.onload = () => {
                 const c = document.createElement("canvas");
+                c.style.display = "none";
                 c.width = img.width * scale;
                 c.height = img.height * scale;
                 c.id = texture
@@ -89,7 +90,7 @@ async function initWorld(world){
     
                 document.body.appendChild(c);
                 textures[texture] = c;
-                console.log();
+                // console.log();
                 resolve(`Texture "${texture}" loaded successfully.`);
             };
     
@@ -116,7 +117,6 @@ moving = {
 let facing = "Left"
 let sprinting = false
 document.addEventListener("keydown", (e) => {
-    // if (e.repeat) return;
     if (e.shiftKey) sprinting = true
     
     let key = e.key.toLowerCase();
@@ -146,7 +146,9 @@ document.addEventListener("keydown", (e) => {
         moving.right = true;
     }
 
-    socket.emit("update", {moving, centerX, centerY, sprinting})
+    let {rows, cols} = calculateRowsAndColumns(100)
+
+    socket.emit("update", {moving, centerX, centerY, sprinting, rows, cols})
 });
 
 function calculateRowsAndColumns(tileSize) {
@@ -156,6 +158,15 @@ function calculateRowsAndColumns(tileSize) {
     return { rows, cols };
 }
 
+document.getElementById("problemAnswer").addEventListener("keyup", (e) => {
+    if (e.key !== "Enter") return;
+    // alert("")
+    value = e.target.value
+    socket.emit("QA", value)
+    
+    document.getElementById("problemHolder").classList.add('fade');
+
+})
 
 document.addEventListener("keyup", (e) => {
     // if (e.repeat) return;
@@ -263,8 +274,18 @@ function drawTrees(){
         let { x, y, locationHash } = json
         
         let location;
+
+        let nodesToHide = hiddenNodes.filter(node => {
+            
+            let matchesX = (node.x - offsetX == x)
+            let matchesY = (node.y - offsetY == y)
+
+            if (matchesY && matchesX) return true;
+        })
+
+        if(nodesToHide.length > 0) continue;
         
-        if (locationHash > 0.99){
+        if (locationHash > 0.995){
             location = trees[2]
         } else if (locationHash > 0.95) {
             location = trees[1]
@@ -286,6 +307,19 @@ function drawRocks(){
     for (rockObj in rockArr){
         let json = rockArr[rockObj]
         let { x, y, locationHash } = json
+
+
+        let nodesToHide = hiddenNodes.filter(node => {
+            
+            let matchesX = (node.x-offsetX == x)
+            let matchesY = (node.y-offsetY == y)
+
+            drawCircle(node.x, node.y, 4);
+
+            if (matchesY && matchesX) return true;
+        })
+
+        if(nodesToHide.length > 0) continue;
         
         if (locationHash < 0.90){
             location = rocks[4]
@@ -323,6 +357,20 @@ function drawPlayer() {
     ctx.stroke();
 
     ctx.drawImage(img, centerX, centerY, img.width, img.height);
+}
+function drawPlayers(){
+    let img = getCurrentImgOfTexture("playerLeft", true);
+    for (let player in players){
+        let playerJson = players[player]
+        // console.log()
+
+        ctx.beginPath();
+        // ctx.rect(centerX, centerY, img.width, img.height);
+        document.getElementById("generalDebug").innerText = `X: ${centerX + (img.width / 2) + offsetX} Y: ${centerY + (img.height / 2 ) + offsetY}`
+        ctx.stroke();
+        ctx.drawImage(img, playerJson.x - offsetX, playerJson.y - offsetY, img.width, img.height);
+        drawStroked( playerJson.username, playerJson.x - offsetX, playerJson.y - offsetY )
+    }
 }
 
 function getCurrentImgOfTexture(textureName, viewOnly){
@@ -403,7 +451,7 @@ function drawObjects(objects){
         
         if ( document.getElementById("showGhostInfo").checked ) showGhostInfo(objectName, dist, object.currentFrame, x, y);
 
-        if ( document.getElementById("ghostTracers").checked ) lineTo(ghostCenterX, ghostCenterY, x2, y2);
+        // if ( document.getElementById("ghostTracers").checked ) lineTo(ghostCenterX, ghostCenterY, x2, y2);
 
         if (dist > object.activationDistance) continue;
         
@@ -463,13 +511,13 @@ function drawObjects(objects){
 
     const {x, y, xW, yH, ghostCenterX, ghostCenterY, x2, y2} = leastDist
     
-    if (document.getElementById("ghostTracers").checked){
-        ctx.strokeStyle = "yellow"
-        ctx.strokeRect(x, y, xW, yH);
-        drawCircle(ghostCenterX, ghostCenterY, 4);
-        lineToText(ghostCenterX, ghostCenterY, x2, y2, `distance🤣 : ${Math.round(leastDist.dist)}`);
-        ctx.strokeStyle = "white"
-    }
+    // if (document.getElementById("ghostTracers").checked){
+    //     ctx.strokeStyle = "yellow"
+    //     ctx.strokeRect(x, y, xW, yH);
+    //     drawCircle(ghostCenterX, ghostCenterY, 4);
+    //     lineToText(ghostCenterX, ghostCenterY, x2, y2, `distance🤣 : ${Math.round(leastDist.dist)}`);
+    //     ctx.strokeStyle = "white"
+    // }
 }
 
 
@@ -543,20 +591,55 @@ function refreshLoop() {
 
 refreshLoop();
 
+let currentlyHeld = false
+
+let placeables = {
+    "bed":{
+        cost:{
+            rock: 10,
+            tree: 10,
+        },
+        canRotate: true
+    },
+    "wall":{
+        cost:{
+            rock: 10,
+            tree: 10,
+        },
+        canRotate: true
+    },
+    "wall_diagonal":{
+        cost:{
+            rock: 10,
+            tree: Infinity,
+        },
+        canRotate: true
+    }
+}
+
+let hiddenNodes = [];
+
+let players = [];
+
 window.onload = async function init(){
-    // var audio = new Audio('assets/audio_file.mp3');
-    // audio.play();
     console.log("loading socket");
     socket = await io.connect();
     console.log("Loaded!");
     
     socket.onAny((event, ...args) => {
         // if (event == "RENDER") return;
+        // console.log(hiddenNodes)
+        const logSocket = document.getElementById("logSocket");
+
+        if (!logSocket.checked) return;
         console.log(event, args);
     });
 
-    socket.on("RECUP", (inventoryJson) => {
+    socket.on("UPD", (nearbyPlayers) => {
+        players = nearbyPlayers.closestPlayers
+    })
 
+    socket.on("RECUP", (inventoryJson) => {
         let inventoryDiv = document.getElementById("inventory");
         inventoryDiv.innerHTML = ""; // refresh the inventory
 
@@ -568,7 +651,34 @@ window.onload = async function init(){
             inventoryDiv.appendChild(li)
         }
 
-        
+        let actionBar = document.getElementById("actionBar");
+        actionBar.innerHTML = "";
+
+        // populate action bar with the things you can place.
+        for( let placeable in placeables){
+            let info = placeables[placeable]
+            let costs = info.cost
+
+            let canPlace = true;
+            for (material in costs){
+                let currentAmount = inventoryJson[material].amount
+                let neededAmount = costs[material]
+
+                if (currentAmount < neededAmount) canPlace = false;
+            }
+            if (canPlace == false) continue;
+
+            let div = document.createElement("DIV");
+            let img =  document.createElement("IMG");
+            img.src = getCurrentImgOfTexture(placeable, true).toDataURL();
+            div.appendChild(img)
+            div.innerText += placeable
+            div.onclick = function (){ alert(placeable); hold(placeable) }
+            actionBar.appendChild(div);
+            
+            console.log(`can place ${placeable}`)
+        }
+
         function createInventoryItem(name, amount, thumb){
             let li = document.createElement("LI");
             let span = document.createElement("SPAN");
@@ -584,6 +694,22 @@ window.onload = async function init(){
         }
     })
 
+    socket.on("tbAlert", (info) => {
+        let {text, duration} = info
+
+        let alertHolder = document.getElementById("alert");
+        let alertText = document.getElementById("alertText");
+
+        alertHolder.style.display = "box";
+        
+        console.log("Showing alert for " + duration )
+        alertText.innerText = text;
+
+        setTimeout(() => {
+            alertHolder.classList.toggle('fade');
+        }, duration);
+    })
+
     socket.on("MINE", (info, problemJson) => {
         let {x, y, type, dist} = info
 
@@ -591,6 +717,7 @@ window.onload = async function init(){
         let problemHolder = document.getElementById("problem");
         let problemInfoHolder = document.getElementById("problemInfo");
 
+        document.getElementById("problemHolder").classList.remove('fade');
         let problemParent = problemInfoHolder.parentElement
         problemInfoHolder.style.display = "box";
 
@@ -606,9 +733,13 @@ window.onload = async function init(){
         let problemHolder = document.getElementById("problem");
         let problemInfoHolder = document.getElementById("problemInfo");
 
+        let inventoryDiv = document.getElementById("inventory").style.display = 'none';
+
         document.getElementById("vignette").style.boxShadow = ` 0 0 200px 5000px rgba(0,0,0,0.9) inset`;
+        document.getElementById("problemHolder").classList.remove('fade');
         
         // .style.display = none;
+        problemHolder.style.display = "box"
         problemHolder.innerHTML = reason;
     })
 
@@ -620,7 +751,9 @@ window.onload = async function init(){
 
         let serverObjectLocations = json.serverObjects
         let treeArr = serverObjectLocations.trees;
-    
+
+        let {nodesToHide} = json
+        if (hiddenNodes !== nodesToHide) hiddenNodes = nodesToHide;
         // for (treeObject in treeArr){
         //     let json = treeArr[treeObject]
         //     let { x, y } = json
@@ -650,6 +783,32 @@ function connect(){
     profile;
 }  
 
+let currentlyHolding;
+function hold(placeable){
+    if (currentlyHolding == placeable) return currentlyHolding = false;
+    currentlyHolding = placeable
+}
+
+function drawHeldItem() {
+    let tileWidth = 100;
+    let tileHeight = 100;
+    
+    if (!currentlyHolding) return;
+
+    let startX = Math.floor(offsetX / imgWidth);
+    let startY = Math.floor(offsetY / imgHeight);
+
+    let gridX = Math.floor(worldX / tileWidth);
+    let gridY = Math.floor(worldY / tileHeight);
+
+    drawObject(currentlyHolding, gridX*100, gridY*100)
+
+    drawCircle(gridX-offsetX, gridY-offsetY, 2)
+
+    console.log(`Player's World Tile Coordinates: (${gridX-100}, ${gridY-100}), held item ${currentlyHolding}`);
+}
+
+
 async function render(){
     // console.log(JSON.stringify(moving))
     frames += 1;
@@ -666,6 +825,8 @@ async function render(){
     drawRocks();
     drawTrees();
     drawPlayer();
+    drawPlayers();
+    drawHeldItem();
     drawPrompt();
     drawObjects(ghosts);
 }
@@ -687,6 +848,7 @@ function drawPrompt(){
     let getCenter = getPlayerCenter()
     let pX = getCenter.x
     let pY = getCenter.y
+
     lineToPrompt(x, y, pX, pY, `${type}: hold | to break`, "prompt_e");
 }
 
@@ -698,13 +860,24 @@ function getClosestObject(arr){
         searchArray = treeArr.concat(rockArr);    
     }
 
-    let leastDist = {x:0, y:0, dist:999999999}
+    let leastDist = {x:0, y:0, dist:Infinity}
 
     for (let object in searchArray){
         let objectInfo = searchArray[object];
         let {x, y} = objectInfo
         let distance = getDistance(x, centerX, y, centerY)
         objectInfo.dist = distance
+
+
+        let nodesToHide = hiddenNodes.filter(node => {
+            
+            let matchesX = (node.x - offsetX == x)
+            let matchesY = (node.y - offsetY == y)
+
+            if (matchesY && matchesX) return true;
+        })
+
+        if(nodesToHide.length > 0) continue;
         
         if (distance < leastDist.dist) leastDist = objectInfo;
     }
@@ -805,7 +978,7 @@ function lineToPrompt(x, y, x2, y2, text, prompt) {
     ctx.fillRect(textureX, textureY, promptTexture.width, promptTexture.height)
     ctx.drawImage(promptTexture, textureX, textureY);
 
-    drawStroked(textArr[1] + alpha, midX + totalWidth / 2 - textWidth2, midY);
+    drawStroked(textArr[1], midX + totalWidth / 2 - textWidth2, midY);
     ctx.globalAlpha = 1;
 }
 
