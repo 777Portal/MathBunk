@@ -1,4 +1,26 @@
-// may god forgive the monstrosity released to the world on this date, dec 30 2024
+async function render(){
+    // console.log(JSON.stringify(moving))
+    frames += 1;
+    moved = false
+    for (dir in moving){
+        reallyMoving = moving[dir]
+        if (!reallyMoving) continue // isn't moving in this dir
+
+        moved = true;
+    }
+
+    ctx.clearRect(0, 0, canvas.getBoundingClientRect().width, canvas.getBoundingClientRect().height);
+    drawMap();
+    drawRocks();
+    drawTrees();
+    drawPlaceableObjects();
+    drawPlayer();
+    drawPlayers();
+    drawHeldItem();
+    drawPrompt();
+}
+
+
 var canvas = document.querySelector("canvas");
 var ctx = canvas.getContext("2d", { alpha: false });
 
@@ -64,7 +86,7 @@ async function initWorld(world){
             await preloadTexture(json.link, json.scale, `${textureHolder}${frame}`, flipped)
         }
     }
-
+    
     async function preloadTexture(src, scale, texture, flipped){
         const img = new Image();
         img.src = src;
@@ -116,6 +138,7 @@ moving = {
 
 let facing = "Left"
 let sprinting = false
+
 document.addEventListener("keydown", (e) => {
     if (e.shiftKey) sprinting = true
     
@@ -123,6 +146,10 @@ document.addEventListener("keydown", (e) => {
 
     if (key == "e"){
         return socket.emit("MINE", e);
+    }
+
+    if (key == "q"){
+        return currentlyHolding = false;
     }
 
     if (e.shiftKey && key == "r"){
@@ -358,6 +385,7 @@ function drawPlayer() {
 
     ctx.drawImage(img, centerX, centerY, img.width, img.height);
 }
+
 function drawPlayers(){
     let img = getCurrentImgOfTexture("playerLeft", true);
     for (let player in players){
@@ -601,23 +629,24 @@ let placeables = {
         },
         canRotate: true
     },
-    "wall":{
+    "table":{
         cost:{
             rock: 10,
             tree: 10,
         },
-        canRotate: true
+        canRotate: false
     },
-    "wall_diagonal":{
+    "campfire":{
         cost:{
-            rock: 10,
-            tree: Infinity,
+            rock: 50,
+            tree: 50,
         },
-        canRotate: true
+        canRotate: false
     }
 }
 
 let hiddenNodes = [];
+let closeObjects = [];
 
 let players = [];
 
@@ -673,7 +702,7 @@ window.onload = async function init(){
             img.src = getCurrentImgOfTexture(placeable, true).toDataURL();
             div.appendChild(img)
             div.innerText += placeable
-            div.onclick = function (){ alert(placeable); hold(placeable) }
+            div.onclick = function (){ hold(placeable) }
             actionBar.appendChild(div);
             
             console.log(`can place ${placeable}`)
@@ -752,15 +781,10 @@ window.onload = async function init(){
         let serverObjectLocations = json.serverObjects
         let treeArr = serverObjectLocations.trees;
 
-        let {nodesToHide} = json
+        let {nodesToHide, nearbyObjects} = json
         if (hiddenNodes !== nodesToHide) hiddenNodes = nodesToHide;
-        // for (treeObject in treeArr){
-        //     let json = treeArr[treeObject]
-        //     let { x, y } = json
 
-        //     drawCircle(x, y, 10)
-        //     ctx.fillText(`X: ${x} | Y: ${y}`, x, y-20)
-        // }
+        if (nearbyObjects) closeObjects = nearbyObjects;
 
         nodeLocations = json.nodeLocations
     })
@@ -789,47 +813,49 @@ function hold(placeable){
     currentlyHolding = placeable
 }
 
-function drawHeldItem() {
-    let tileWidth = 100;
-    let tileHeight = 100;
-    
+let rotationalValue = 90;
+function drawHeldItem() {  
     if (!currentlyHolding) return;
 
-    let startX = Math.floor(offsetX / imgWidth);
-    let startY = Math.floor(offsetY / imgHeight);
+    let img = getCurrentImgOfTexture(currentlyHolding, true)
+    
+    let imgWidth = img.width;
+    let imgHeight = img.height;
 
-    let gridX = Math.floor(worldX / tileWidth);
-    let gridY = Math.floor(worldY / tileHeight);
+    let locX = Math.floor(centerX);
+    let locY = Math.floor(centerY-imgHeight)
+    
+    drawCircle(centerX, centerY-imgHeight, 4);
 
-    drawObject(currentlyHolding, gridX*100, gridY*100)
-
-    drawCircle(gridX-offsetX, gridY-offsetY, 2)
-
-    console.log(`Player's World Tile Coordinates: (${gridX-100}, ${gridY-100}), held item ${currentlyHolding}`);
+    ctx.drawImage(img, locX, locY, imgWidth, imgHeight)
+    ctx.rect(locX, locY, imgWidth, imgWidth);
 }
 
-
-async function render(){
-    // console.log(JSON.stringify(moving))
-    frames += 1;
-    moved = false
-    for (dir in moving){
-        reallyMoving = moving[dir]
-        if (!reallyMoving) continue // isn't moving in this dir
-
-        moved = true;
+function drawPlaceableObjects(){
+    for (object in closeObjects){
+        let objectInfo = closeObjects[object]
+        let {type, x, y} = objectInfo
+        // console.log(x, y)
+        
+        let img = getCurrentImgOfTexture(type, true)
+        let imgWidth = img.width;
+        let imgHeight = img.height;
+        
+        // drawCircle(centerX, centerY-imgHeight, 4);
+        ctx.drawImage(img, x-offsetX, y-offsetY, imgWidth, imgHeight)
     }
-
-    ctx.clearRect(0, 0, canvas.getBoundingClientRect().width, canvas.getBoundingClientRect().height);
-    drawMap();
-    drawRocks();
-    drawTrees();
-    drawPlayer();
-    drawPlayers();
-    drawHeldItem();
-    drawPrompt();
-    drawObjects(ghosts);
 }
+
+document.addEventListener("mousedown", (e) => {
+    if (!currentlyHolding) return;
+
+    let img = getCurrentImgOfTexture(currentlyHolding, true)
+    
+    let imgWidth = img.width;
+    let imgHeight = img.height;
+    
+    socket.emit("PLCE", {currentlyHolding, imgWidth, imgHeight})
+})
 
 const xInputHandler = function(e) {
   centerX = e.target.value;
@@ -991,7 +1017,7 @@ function decimalHash(string) {
     return sum % 1;
 }
 
-function drawObject(texture, cords) {
+function drawObject(texture, cords, rotation) {
     let { x, y } = cords;
     // console.log(texture)
     // console.log('drawing '+texture)
@@ -1002,8 +1028,22 @@ function drawObject(texture, cords) {
     let centeredX = x - imgWidth / 2;
     let centeredY = y - imgHeight / 2;
 
+    if (rotation){
+        ctx.rotate( ( 90 * rotation ) );
+        ctx.fillStyle = "red";
+        ctx.fillRect(100, 0, 80, 20);
+
+        // Reset transformation matrix to the identity matrix
+        ctx.setTransform(1, 0, 0, 1, 0, 0);
+
+    }
+
     // ctx.fillRect(centeredX, centeredY, imgWidth, imgHeight);
     ctx.drawImage(img, centeredX, centeredY, imgWidth, imgHeight);
+
+    if (rotation){
+        ctx.setTransform(1, 0, 0, 1, 0, 0);
+    }
 }
 
 function showGhostInfo(ghostName, dist, currentFrame, x, y){

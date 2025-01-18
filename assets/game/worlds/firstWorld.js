@@ -19,8 +19,13 @@ firstWorld = {
             "static": true,
             "scale": 0.5
         },
+        "bed":{
+            "link": "/assets/game/placeables/bed.png",
+            "static": true,
+            "scale": 1
+        },
         "wall":{
-            "link": "/assets/game/keyboard prompts/prompt_e.png",
+            "link": "/assets/game/placeables/wall.png",
             "static": true,
             "scale": 1
         },

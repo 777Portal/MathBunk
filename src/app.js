@@ -64,11 +64,8 @@ process.on('exit', async (code) => {
 function generateProblem() {
   let problemVars = {};
   let problemsArr = Object.values(problems);
-  // let randomQuestionIndex = getRandomInt(0, Object.keys(questions).length - 1);
-  randomQuestionIndex = 0
+  let randomQuestionIndex = getRandomInt(0, Object.keys(problems).length - 1);
   let question = problemsArr[randomQuestionIndex];
-
-  console.log(problemsArr[0], JSON.stringify(problemsArr));
 
   let vars = question.vars;
 
@@ -83,7 +80,7 @@ function generateProblem() {
 
     switch (functionName) {
       case "getrandomint":
-        console.log(JSON.stringify(args))
+        // console.log(JSON.stringify(args))
         problemVars[questionVar] = getRandomInt(args[0], args[1]);
         break;
       default:
@@ -99,10 +96,10 @@ function generateProblem() {
     problemQuestion = problemQuestion.replaceAll(`_${variable}_`, problemVars[variable])
     problemQuestion = problemQuestion.replaceAll(`\n`, "<br>")
     questionEquation = questionEquation.replaceAll(variable, problemVars[variable])
-    console.log(`filled ${variable}`)
+    // console.log(`filled ${variable}`)
   }
 
-  console.log(questionEquation, problemQuestion);
+  // console.log(questionEquation, problemQuestion);
   let useKatex = question.type
   
   let questionAnswer = eval(questionEquation)
@@ -130,24 +127,20 @@ let problems = {
     problem: "Tom is painting a fence _fenceLength_ feet long. \nHe starts at the West end of the fence and paints at a rate of _tomRate_ feet per hour.\nAfter _tomSoloTime_ hours, Huck joins Tom and begins painting from the East end of the fence at a rate of _huckRate_ feet per hour. \nAfter _combinedTime_ hours of the two boys painting at the same time, Tom leaves Huck to finish the job by himself.\m\nIf Huck completes painting the entire fence after Tom leaves, how many more hours will Huck work than Tom?"
   },
   question2:{
-    type: "dynamic",
-    vars: {
-      b: "getRandomInt[19_19",
-      a: "divide[b_2"
-    },
-    problem: "A = B / 2"
-  },
-  question3:{
-    type: "dynamic",
-    vars: {
-      b: "getRandomInt[19_19",
-      a: "divide[b_2"
-    },
-    problem: "A = B / 2"
+    "type": "static",
+    "vars": {
+      "initialSpeed": "getRandomInt(10,20)",
+      "time": "getRandomInt(2,5)",
+      "acceleration": "getRandomInt(2,6)",
+      "initialPosition": "getRandomInt(0,10)"
+    },    
+    "actualEquation": "initialPosition + initialSpeed * time + 0.5 * acceleration * time^2",
+    "problem": "A car starts at an initial position of _initialPosition_ meters and moves with an initial speed of _initialSpeed_ meters per second. The car accelerates at a rate of _acceleration_ meters per second squared.\nAfter _time_ seconds, how far will the car have traveled?"
   }
 }
 
 let hiddenNodes = []; // nodes that are used
+let placedObjects = []; // stuff that is placed down
 
 const sockets = {};
 
@@ -187,13 +180,37 @@ function updateUsers(){
   }
 }
 
+let placeables = {
+  "bed":{
+      cost:{
+          rock: 10,
+          tree: 10,
+      },
+      canRotate: true
+  },
+  "table":{
+      cost:{
+          rock: 10,
+          tree: 10,
+      },
+      canRotate: false
+  },
+  "campfire":{
+      cost:{
+          rock: 50,
+          tree: 50,
+      },
+      canRotate: false
+  }
+}
+
 io.on('connection', async (socket) => {
   socketSessionData = socket.request.session
   
   // check auth, if no auth kick em.
   if (!socketSessionData || !socketSessionData.authenticated) {
     socket.emit( 'tbAlert', {text: 'Not logged in...', duration:1} )
-    socket.emit( 'CloseConn', {reason: 'You are not logged in!<br><a href="/auth/google">sign in?</a>'} )
+    socket.emit( 'CloseConn', {reason: 'You are not logged in!<br><a href="/auth/google">sign in?</a><br><a href="/assets/credits.txt">credits</a>'} )
     return socket.disconnect(true);
   }
   // refresh the data
@@ -262,8 +279,17 @@ io.on('connection', async (socket) => {
       });
     }
 
+
+    let nearbyObjects = [];
+    if (placedObjects.length > 0) {
+      nearbyObjects = placedObjects.filter(object => {
+        const distance = getDistance(x, object.x, y, object.y)
+        return distance <= 10000;
+      });
+    }
+
     updateUsers();
-    socket.emit( 'RENDER', {x, y, offsetX, offsetY, serverObjects, nodesToHide});
+    socket.emit( 'RENDER', {x, y, offsetX, offsetY, serverObjects, nodesToHide, nearbyObjects});
   }, 16.7);
 
   socket.on("MINE", (arg) => {
@@ -293,13 +319,39 @@ io.on('connection', async (socket) => {
     else problem = katex.renderToString(problemQuestion, { throwOnError: false });
 
     socket.emit("MINE", {closest}, {problemInfo, problem})
-    console.log(problemJson.questionAnswer)
+    // console.log(problemJson.questionAnswer)
   });
 
+  socket.on("PLCE", (arg) => {
+    let {imgWidth, currentlyHolding, imgHeight} = arg // have to make a better way to do this this is super unsafe
+    if (!currentlyHolding in placeables) return;
+
+    let pos = info.position
+    inventory = info.inventory
+
+    let x = pos.x 
+    let y = pos.y 
+
+    let locationX = Math.floor(x);
+    let locationY = Math.floor(y-imgHeight);
+
+    let costArr = placeables[currentlyHolding].cost;
+
+    for (cost in costArr){
+      let price = costArr[cost]
+
+      let inventoryItem = inventory[cost]
+      if (inventoryItem.amount - price < 0) return;
+      
+      inventory[cost].amount -= price
+    }
+    
+    placedObjects.push({type:currentlyHolding, x:locationX, y:locationY})
+  })
 
   socket.on("QA", (arg) => {
     inventory = info.inventory
-    console.log("\n\n"+arg)
+    // console.log("\n\n"+arg)
     
     if (!info.currentQuestion) return;
     let currentQuestion = info.currentQuestion
@@ -308,7 +360,7 @@ io.on('connection', async (socket) => {
     let questionAnswer = currentQuestion.questionAnswer;
     let type = closest.type 
     
-    console.log(questionAnswer, arg, (questionAnswer == arg))
+    // console.log(questionAnswer, arg, (questionAnswer == arg))
     if (closest.type == "bigBurnedTree") type = "tree";
     if (questionAnswer != arg) { return socket.emit("MINE", {closest}, {problemInfo:"Incorrect!", problem:`You got the answer "<b>${arg}</b>", but the actual answer was <b>${questionAnswer}</b>`}); }
 
@@ -349,7 +401,7 @@ io.on('connection', async (socket) => {
   socket.on('disconnecting', () => {
     socketStatus[socket.id] = 'disconnecting';
     let email = socketSessionData.passport.user.email
-    console.log("\n\n\nsaving info for " + email, JSON.stringify(info))
+    console.log("saving info for " + email)
     delete info._id // to not conflit with mongo db's auto id stuff.
     users.updateUser(email, info)
   });

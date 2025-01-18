@@ -8,3 +8,4 @@ Incoming
   - UPDATE (updates player's direction json)
   - MINE (reqests to mine resource)
   - QA (gets the users response to the question)
+  - PLCE (sends a thing saying they want to place item)

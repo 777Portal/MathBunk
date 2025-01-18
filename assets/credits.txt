@@ -1,0 +1,17 @@
+Trees: https://craftpix.net/ - CC0
+
+snow - https://opengameart.org/content/seamless-snow-texture - CC3
+
+Ui backgrounds & items: https://www.kenney.nl/assets/ - CC0
+
+Perlin noise library: https://github.com/josephg/noisejs - CC0
+
+socket library: Socket.io https://github.com/socketio/socket.io - MIT
+
+webserver library: express.js  https://expressjs.com/ - MIT
+
+database: MongoDB  https://www.mongodb.com/ **SSPL**
+
+auth library: passport https://www.npmjs.com/package/passport - MIT
+
+Thank you to all the amazing people who helped make this possible :D
