@@ -38,7 +38,7 @@ fs.readFile(serviceFilePath, 'utf8', (err, existingContent) => {
           } else {
             console.log('Systemd daemon reloaded.');
 
-            exec('systemctl enable myapp.service && systemctl start myapp.service', (startErr) => {
+            exec('systemctl enable mathbunk.service && systemctl start mathbunk.service', (startErr) => {
               if (startErr) {
                 console.error('Error starting service:', startErr);
               } else {
