@@ -1,3 +1,4 @@
+#!/usr/bin/env node
 const db = require('./db/db.js');
 const passport = require("passport");
 const PORT = 3000; // Move to config.json soon
