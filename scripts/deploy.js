@@ -51,7 +51,8 @@ fs.readFile(serviceFilePath, 'utf8', (err, existingContent) => {
     });
   } else {
     console.log('Service file already up to date. Restarting');
-
+    
+    const exec = require('child_process').exec;
     exec('systemctl restart mathbunk.service', (restartErr) => {
       if (restartErr) {
         console.error('Error starting service:', restartErr);
