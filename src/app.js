@@ -148,40 +148,26 @@ let placedObjects = []; // stuff that is placed down
 
 const sockets = {};
 
-function updateUsers(){
-  let players = {}
-  
-  for (socketIndex in sockets){
-    let targetSocket = sockets[socketIndex]
-    let info = targetSocket.request.session.info
+async function updateUsers() {
+  let players = {};
 
-    if (!info || !targetSocket) continue;
-  
-    let {username, position} = info
-    let {x, y, moving} = position
+  for (let socket of Object.values(sockets)) {
+    let info = socket.request.session.info;
+    if (!info) continue;
 
-    players[username] = {x, y, moving, username}
-
-    // console.log("\n" + JSON.stringify(info.request.session.info));
-    // console.log("- Updating player: " + username);
+    players[info.username] = { x: info.position.x, y: info.position.y };
   }
 
-  for (socketIndex in sockets){
-    let targetSocket = sockets[socketIndex]
-    let info = targetSocket.request.session.info
+  await Promise.all(Object.values(sockets).map(async (socket) => {
+    let info = socket.request.session.info;
+    if (!info) return;
 
-    let closestPlayers;
+    let closestPlayers = Object.values(players).filter(player => 
+      getDistance(info.position.x, player.x, info.position.y, player.y) <= 10000
+    );
 
-    closestPlayers = Object.values(players).filter(player => {
-      const distance = getDistance(info.position.x, player.x, info.position.y, player.y)
-      if (info.username == player.username) return false;
-      return distance <= 10000;
-    });
-
-    if (closestPlayers.length < 0) return;
-
-    targetSocket.emit('UPD', { closestPlayers })
-  }
+    socket.emit('UPD', { closestPlayers });
+  }));
 }
 
 let placeables = {
@@ -276,9 +262,7 @@ io.on('connection', async (socket) => {
 
     if (hiddenNodes.length > 0) {
       nodesToHide = hiddenNodes.filter(node => {
-        // console.log(node)
         const distance = getDistance(x, node.x, y, node.y)
-        // console.log(distance)
         return distance <= 10000;
       });
     }
@@ -296,7 +280,7 @@ io.on('connection', async (socket) => {
     socket.emit( 'RENDER', {x, y, offsetX, offsetY, serverObjects, nodesToHide, nearbyObjects});
   }, 16.7);
 
-  socket.on("MINE", (arg) => {
+  socket.on("MINE", async (arg) => {
     pos = info.position
 
     let nodeLocations = getObjects(pos.offsetX, pos.offsetY, pos.rows, pos.cols);
@@ -427,33 +411,15 @@ io.on('connection', async (socket) => {
 
 
 function getClosestObject(nodeLocations, offsetX, offsetY, x2, y2) {
-  let searchArray = [...nodeLocations.trees, ...nodeLocations.rocks];
+  let candidates = nodeLocations.trees.concat(nodeLocations.rocks)
+    .filter(obj => Math.abs(obj.x - x2) < 100 && Math.abs(obj.y - y2) < 100); // Narrow search area
 
-  let leastDist = { x: 0, y: 0, dist: Infinity };
-  
-  for (let objectInfo of searchArray) {
-    let { x, y } = objectInfo;
-    let distance = getDistance(x, x2, y, y2);
-    // console.log(x, x2, y, y2)
-    objectInfo.dist = distance;
-
-    let nodesToHide = hiddenNodes.filter(node => {
-            
-      let matchesX = (node.x == x)
-      let matchesY = (node.y == y)
-
-      if (matchesY && matchesX) return true;
-    })
-    
-    if(nodesToHide.length > 0) continue;
-
-    if (distance < leastDist.dist) {
-      leastDist = objectInfo;
-    }
-  }
-
-  return leastDist.dist === Infinity ? false : leastDist;
+  return candidates.reduce((closest, obj) => {
+    let dist = getDistance(obj.x, x2, obj.y, y2);
+    return dist < closest.dist ? { ...obj, dist } : closest;
+  }, { x: 0, y: 0, dist: Infinity });
 }
+
 
 
 function decimalHash(string) {
