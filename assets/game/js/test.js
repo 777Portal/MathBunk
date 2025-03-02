@@ -187,12 +187,12 @@ function calculateRowsAndColumns(tileSize) {
 
 document.getElementById("problemAnswer").addEventListener("keyup", (e) => {
     if (e.key !== "Enter") return;
-    // alert("")
+
     value = e.target.value
     socket.emit("QA", value)
+    document.activeElement.blur();
     
     document.getElementById("problemHolder").classList.add('fade');
-
 })
 
 document.addEventListener("keyup", (e) => {
