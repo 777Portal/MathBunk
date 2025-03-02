@@ -642,8 +642,36 @@ let placeables = {
             tree: 50,
         },
         canRotate: false
+    },
+    "wall":{
+      cost:{
+          rock: 0,
+          tree: 1,
+      },
+      canRotate: true
+    },
+    "wall_corner":{
+      cost:{
+          rock: 0,
+          tree: 1,
+      },
+      canRotate: true
+    },
+    "wall_diagonal":{
+      cost:{
+          rock: 0,
+          tree: 1,
+      },
+      canRotate: true
+    },
+    "fallback":{
+      cost:{
+          rock: 99999,
+          tree: 99999,
+      },
+      canRotate: true
     }
-}
+  }
 
 let hiddenNodes = [];
 let closeObjects = [];
