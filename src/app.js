@@ -54,7 +54,6 @@ app.get('/katex', (req, res) => {
 })
 
 app.get('/logout', (req, res) => {
-  // Clear session data
   req.session.destroy((err) => {
     if (err) {
       console.error(err);
@@ -201,6 +200,34 @@ let placeables = {
           tree: 50,
       },
       canRotate: false
+  },
+  "wall":{
+    cost:{
+        rock: 0,
+        tree: 1,
+    },
+    canRotate: true
+  },
+  "wall_corner":{
+    cost:{
+        rock: 0,
+        tree: 1,
+    },
+    canRotate: true
+  },
+  "wall_diagonal":{
+    cost:{
+        rock: 0,
+        tree: 1,
+    },
+    canRotate: true
+  },
+  "fallback":{
+    cost:{
+        rock: 99999,
+        tree: 99999,
+    },
+    canRotate: true
   }
 }
 
@@ -375,6 +402,7 @@ io.on('connection', async (socket) => {
 
   socket.on('update', (json) => {
     let pos = info.position
+    
     let {moving, centerX, centerY, sprinting, rows, cols} = json
     
     info.position.rows = rows ? rows : 11 // defaults to size of my screen cuz its better then erroring when getting closest object lol
