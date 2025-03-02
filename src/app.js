@@ -4,6 +4,8 @@ const passport = require("passport");
 const path = require('path');
 const PORT = 3000; // Move to config.json soon
 
+const workingDir = path.dirname(__dirname);
+
 const express = require('express');
 const katex = require('katex');
 const app = express();
@@ -38,7 +40,6 @@ async function initDatabase(){
 initDatabase();
 
 // google auth
-const workingDir = path.dirname(__dirname);
 const googleRoutes = require(workingDir+'/routes/auth/google/google.js');
 app.use('/auth', googleRoutes);
 
