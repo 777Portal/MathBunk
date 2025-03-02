@@ -155,7 +155,7 @@ async function updateUsers() {
     let info = socket.request.session.info;
     if (!info) continue;
 
-    players[info.username] = { x: info.position.x, y: info.position.y };
+    players[info.username] = { username: info.username, x: info.position.x, y: info.position.y };
   }
 
   await Promise.all(Object.values(sockets).map(async (socket) => {
@@ -278,7 +278,7 @@ io.on('connection', async (socket) => {
 
     updateUsers();
     socket.emit( 'RENDER', {x, y, offsetX, offsetY, serverObjects, nodesToHide, nearbyObjects});
-  }, 16.7);
+  }, 33.33);
 
   socket.on("MINE", async (arg) => {
     pos = info.position
