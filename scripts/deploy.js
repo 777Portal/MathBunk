@@ -6,6 +6,7 @@ const serviceFilePath = '/etc/systemd/system/mathbunk.service';
 const workingDir = path.dirname(__dirname);
 const execStartPath = path.join(workingDir, 'src', 'app.js');
 
+// exonauto is hardcoded, should fix that asp
 const serviceContent = `
 [Unit]
 Description=Mathbunk
@@ -13,8 +14,8 @@ Description=Mathbunk
 [Service]
 ExecStart=${execStartPath}
 Restart=always
-User=nobody
-Group=nogroup
+User=exonauto
+Group=exonauto
 Environment=PATH=/usr/bin:/usr/local/bin
 Environment=NODE_ENV=production
 WorkingDirectory=${workingDir}
