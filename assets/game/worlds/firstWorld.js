@@ -22,27 +22,27 @@ firstWorld = {
         "bed":{
             "link": "/assets/game/placeables/bed.png",
             "static": true,
-            "scale": 1
+            "scale": 0.5
         },
         "wall":{
             "link": "/assets/game/placeables/wall.png",
             "static": true,
-            "scale": 1
+            "scale": 0.5
         },
         "wall_diagonal":{
             "link": "/assets/game/placeables/wall_diagonal.png",
             "static": true,
-            "scale": 1
+            "scale": 0.5
         },
         "wall_corner":{
             "link": "/assets/game/placeables/wall_diagonal.png",
             "static": true,
-            "scale": 1
+            "scale": 0.5
         },
         "doorway":{
             "link": "/assets/game/placeables/doorway.png",
             "static": true,
-            "scale": 1
+            "scale": 0.5
         },
         "campfire":{
             "link": "/assets/game/placeables/campfire.png",
