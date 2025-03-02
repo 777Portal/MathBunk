@@ -10,7 +10,7 @@ const express = require('express');
 const katex = require('katex');
 const app = express();
 
-const users = require('./db/users.js');
+const users = require(workingDir+'/src/db/users.js');
 
 app.use('/assets', express.static(workingDir+'/assets'))
 
@@ -40,7 +40,7 @@ async function initDatabase(){
 initDatabase();
 
 // google auth
-const googleRoutes = require(workingDir+'/routes/auth/google/google.js');
+const googleRoutes = require(workingDir+'/src/routes/auth/google/google.js');
 app.use('/auth', googleRoutes);
 
 app.get('/', (req, res) => {
