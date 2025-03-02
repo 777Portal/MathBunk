@@ -376,7 +376,6 @@ io.on('connection', async (socket) => {
 
   socket.on("QA", (arg) => {
     inventory = info.inventory
-    // console.log("\n\n"+arg)
     
     if (!info.currentQuestion) return;
     let currentQuestion = info.currentQuestion
@@ -384,19 +383,25 @@ io.on('connection', async (socket) => {
     let closest = currentQuestion.closest;
     let questionAnswer = currentQuestion.questionAnswer;
     let type = closest.type 
-    
-    // console.log(questionAnswer, arg, (questionAnswer == arg))
+
     if (closest.type == "bigBurnedTree") type = "tree";
-    if (questionAnswer != arg) { return socket.emit("MINE", {closest}, {problemInfo:"Incorrect!", problem:`You got the answer "<b>${arg}</b>", but the actual answer was <b>${questionAnswer}</b>`}); }
-
-    let amount = getRandomInt(10, 15)
-    let inventoryItem = inventory[type]
-    inventory[type].amount += amount;
-
-    hiddenNodes.push(closest)
+    if (!type) return socket.emit( 'tbAlert', {text: 'Failed to give resource! Type not defined.', duration: 1500} );
     
-    socket.emit("RECUP", inventory)
-    socket.emit( 'tbAlert', {text: `Successfully got ${amount} of ${inventoryItem.displayName}`, duration: 1500} )
+    if (questionAnswer != arg) { return socket.emit("MINE", {closest}, {problemInfo:"Incorrect!", problem:`You got the answer "<b>${arg}</b>", but the actual answer was <b>${questionAnswer}</b>`}); }
+    
+    let amount = getRandomInt(10, 15)
+
+    try {
+      let inventoryItem = inventory[type]
+      inventory[type].amount += amount;
+  
+      hiddenNodes.push(closest)
+          
+      socket.emit("RECUP", inventory);
+      socket.emit( 'tbAlert', {text: `Successfully got ${amount} of ${inventoryItem.displayName}`, duration: 1500} );
+    } catch (err) {
+      if (!type) return socket.emit( 'tbAlert', {text: 'Internal error: '+err, duration: 1500} );
+    }
   });
 
 
