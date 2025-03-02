@@ -53,6 +53,16 @@ app.get('/katex', (req, res) => {
   }));
 })
 
+app.get('/logout', (req, res) => {
+  // Clear session data
+  req.session.destroy((err) => {
+    if (err) {
+      console.error(err);
+    }
+    res.redirect('/');
+  });
+});
+
 // Start the server
 server.listen(PORT, () => {
   console.log(`Server is running at http://localhost:${PORT}`);
@@ -409,7 +419,6 @@ io.on('connection', async (socket) => {
   updateUsers();
 });
 
-
 function getClosestObject(nodeLocations, offsetX, offsetY, x2, y2) {
   let candidates = nodeLocations.trees.concat(nodeLocations.rocks)
     .filter(obj => Math.abs(obj.x - x2) < 100 && Math.abs(obj.y - y2) < 100); // Narrow search area
@@ -419,8 +428,6 @@ function getClosestObject(nodeLocations, offsetX, offsetY, x2, y2) {
     return dist < closest.dist ? { ...obj, dist } : closest;
   }, { x: 0, y: 0, dist: Infinity });
 }
-
-
 
 function decimalHash(string) {
   string
