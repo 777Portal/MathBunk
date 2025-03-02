@@ -10,7 +10,11 @@ const GoogleStrategy = require('passport-google-oauth2').Strategy;
 
 const {
   web, 
-} = require('../../../../config/googleConfig.json');  
+} = require('../../../../config/googleConfig.json');
+
+const {
+  production, 
+} = require('../../../../config/config.json');  
 const { attemptLogin } = require('../../../auth/login.js');
 
 passport.serializeUser(function(user, done) {
@@ -24,7 +28,7 @@ passport.deserializeUser(function(user, done) {
 passport.use(new GoogleStrategy({
     clientID: web.client_id,
     clientSecret: web.client_secret,
-    callbackURL: "http://localhost:3000/auth/google/callback",
+    callbackURL: production ? web.redirect_uris[1] : web.redirect_uris[0],
     passReqToCallback: true
   },
   function(request, accessToken, refreshToken, profile, done) {
