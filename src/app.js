@@ -1,6 +1,7 @@
 #!/usr/bin/env node
 const db = require('./db/db.js');
 const passport = require("passport");
+const path = require('path');
 const PORT = 3000; // Move to config.json soon
 
 const express = require('express');
@@ -9,7 +10,7 @@ const app = express();
 
 const users = require('./db/users.js');
 
-app.use('/assets', express.static('../assets'))
+app.use('/assets', express.static(workingDir+'/assets'))
 
 // save login state
 const session = require('express-session');
@@ -37,11 +38,12 @@ async function initDatabase(){
 initDatabase();
 
 // google auth
-const googleRoutes = require('./routes/auth/google/google.js');
+const workingDir = path.dirname(__dirname);
+const googleRoutes = require(workingDir+'/routes/auth/google/google.js');
 app.use('/auth', googleRoutes);
 
 app.get('/', (req, res) => {
-  res.sendFile('index.html', { root: '../assets/game/' });
+  res.sendFile('index.html', { root: workingDir+'/assets/game/' });
 });
 
 app.get('/katex', (req, res) => {
