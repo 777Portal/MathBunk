@@ -12,7 +12,7 @@ const serviceContent = `
 Description=Mathbunk
 
 [Service]
-ExecStart=${execStartPath}
+ExecStart=/usr/bin/node ${execStartPath}
 Restart=always
 User=exon
 Group=exon
