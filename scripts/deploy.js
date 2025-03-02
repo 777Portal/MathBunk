@@ -14,8 +14,8 @@ Description=Mathbunk
 [Service]
 ExecStart=${execStartPath}
 Restart=always
-User=exonauto
-Group=exonauto
+User=exon
+Group=exon
 Environment=PATH=/usr/bin:/usr/local/bin
 Environment=NODE_ENV=production
 WorkingDirectory=${workingDir}
