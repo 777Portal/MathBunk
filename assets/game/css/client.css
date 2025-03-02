@@ -43,11 +43,11 @@ html{
     padding-right: 5px;
     padding-left: 5px;
     
-    /* backdrop-filter: blur(7px) saturate(98%);
+    backdrop-filter: blur(7px) saturate(98%);
     -webkit-backdrop-filter: blur(7px) saturate(98%);
     background-image: url("/assets/game/ui/pattern_diagonal_grey_small.png");
     border-radius: 12px;
-    border: 1px solid rgba(255, 255, 255, 0.125);  */
+    border: 1px solid rgba(255, 255, 255, 0.125);
 }
 
 .inventory span img {
@@ -82,8 +82,8 @@ html{
 }
 
 .prompts {
-    background-color: rgba(0, 0, 0, 0.29);
-    border: 1px solid rgba(255, 255, 255, 0.125);    
+    /* background-color: rgba(0, 0, 0, 0.29);
+    border: 1px solid rgba(255, 255, 255, 0.125);     */
     width: 50%;
     height: 100px;
 
