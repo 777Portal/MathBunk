@@ -231,50 +231,54 @@ io.on('connection', async (socket) => {
   socket.emit("RECUP", inventory)
 
   let localInterval = setInterval(async () => {
-    if (session.ssocid !== socket.id) {
-      socket.emit('CloseConn', { reason: 'logged in at another location (tab, page, etc.)' });
+    if (session.ssocid !== socket.id) // to prevent funny bug where you could just have multiple tabs open at the same time to get money faster :P
+    {
+      socket.emit( 'CloseConn', {reason: 'logged in at another location (tab, page, ect.)'} )
       return socket.disconnect(true);
     }
 
-    pos = info.position;
-    let moving = checkIfMoving(pos.direction);
-    let { sprinting, rows, cols } = pos;
+    pos =  info.position
+    let moving = checkIfMoving(pos.direction)
+    let {sprinting, rows, cols} = pos
+    // if (!moving.moved) return;
 
-    let oldOffsetX = pos.offsetX;
-    let oldOffsetY = pos.offsetY;
+    let oldOffsetX = pos.offsetX
+    let oldOffsetY = pos.offsetY
 
-    pos.rows = rows;
-    pos.cols = cols;
+    pos.rows = rows
+    pos.cols = cols
 
-    let { offsetX, offsetY } = getNewOffset(oldOffsetX, oldOffsetY, pos.moving, sprinting);
+    let {offsetX, offsetY} = getNewOffset(oldOffsetX, oldOffsetY, pos.moving, sprinting)
 
-    info.position.offsetX = offsetX;
-    info.position.offsetY = offsetY;
+    info.position.offsetX = offsetX
+    info.position.offsetY = offsetY
 
     let x = pos.x;
     let y = pos.y;
 
-    let lastState = clientCache.get(socket.id) || {};
+    let serverObjects = getObjects(offsetX,offsetY, rows, cols)
 
-    let serverObjects = lastState.offsetX === offsetX && lastState.offsetY === offsetY
-      ? lastState.serverObjects
-      : getObjects(offsetX, offsetY, rows, cols);
+    let nodesToHide = [];
 
-    let nodesToHide = lastState.offsetX === offsetX && lastState.offsetY === offsetY
-      ? lastState.nodesToHide
-      : hiddenNodes.filter(node => getDistance(x, node.x, y, node.y) <= 10000);
-
-    let nearbyObjects = lastState.offsetX === offsetX && lastState.offsetY === offsetY
-      ? lastState.nearbyObjects
-      : placedObjects.filter(object => getDistance(x, object.x, y, object.y) <= 10000);
-
-    clientCache.set(socket.id, { offsetX, offsetY, serverObjects, nodesToHide, nearbyObjects });
-
-    if (JSON.stringify(lastState) !== JSON.stringify({ offsetX, offsetY, serverObjects, nodesToHide, nearbyObjects })) {
-      socket.emit('RENDER', { x, y, offsetX, offsetY, serverObjects, nodesToHide, nearbyObjects });
+    if (hiddenNodes.length > 0) {
+      nodesToHide = hiddenNodes.filter(node => {
+        const distance = getDistance(x, node.x, y, node.y)
+        return distance <= 10000;
+      });
     }
 
-}, 33.333);
+
+    let nearbyObjects = [];
+    if (placedObjects.length > 0) {
+      nearbyObjects = placedObjects.filter(object => {
+        const distance = getDistance(x, object.x, y, object.y)
+        return distance <= 10000;
+      });
+    }
+
+    updateUsers();
+    socket.emit( 'RENDER', {x, y, offsetX, offsetY, serverObjects, nodesToHide, nearbyObjects});
+  }, 16.7);
 
   socket.on("MINE", async (arg) => {
     pos = info.position
