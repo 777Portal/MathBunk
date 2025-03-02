@@ -9,11 +9,11 @@ firstWorld = {
             "static": true,
             "scale": 2
         },
-        texture1: {
-            "link": "/assets/game/texture.png",
-            "static": true,
-            "scale": 1
-        },
+        // texture1: {
+        //     "link": "/assets/game/texture.png",
+        //     "static": true,
+        //     "scale": 1
+        // },
         "prompt_e":{
             "link": "/assets/game/keyboard prompts/prompt_e.png",
             "static": true,
@@ -65,7 +65,7 @@ firstWorld = {
             "scale": 1
         },
         "ground":{
-            "link": "/assets/game/ground/snow.png",
+            "link": "/assets/game/ground/snow.jpg",
             "static": true,
             "scale": 0.1
         },
