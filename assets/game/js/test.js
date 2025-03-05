@@ -18,8 +18,8 @@ async function render(){
     drawPlayers();
     drawHeldItem();
     drawPrompt();
+    updateClientOffset();
 }
-
 
 var canvas = document.querySelector("canvas");
 var ctx = canvas.getContext("2d", { alpha: false });
@@ -386,18 +386,59 @@ function drawPlayer() {
     ctx.drawImage(img, centerX, centerY, img.width, img.height);
 }
 
+function updateClientOffset(){
+    const {x, y} = getNewPos(offsetX, offsetY, moving, sprinting); // this can also get our offset x and y because its the same operation.
+    offsetX = x;
+    offsetY = y;
+}
+
+function getNewPos(x, y, moving, sprinting){
+    if (sprinting == true) offsetAmount = 5
+    else offsetAmount = 2.5
+    
+    let direction;
+  
+    for (dir in moving){
+      reallyMoving = moving[dir]
+      if (!reallyMoving) continue // isn't moving in this dir
+      
+      switch (dir) {
+        case "left":
+          x -= offsetAmount;
+          break;
+        case "right":
+          x += offsetAmount;
+          break;
+        case "up":
+          y -= offsetAmount;
+          break;
+        case "down":
+          y += offsetAmount;
+          break;
+      } 
+  
+      direction = dir
+      moved = true;
+    }
+  
+    // javascript fuckery; for some reason html canvas the Y is inverted, so down is up and up is down.
+    return {x, y}
+}
+
 function drawPlayers(){
     let img = getCurrentImgOfTexture("playerLeft", true);
     for (let player in players){
         let playerJson = players[player]
-        // console.log()
 
         ctx.beginPath();
-        // ctx.rect(centerX, centerY, img.width, img.height);
         document.getElementById("generalDebug").innerText = `X: ${centerX + (img.width / 2) + offsetX} Y: ${centerY + (img.height / 2 ) + offsetY}`
         ctx.stroke();
         ctx.drawImage(img, playerJson.x - offsetX, playerJson.y - offsetY, img.width, img.height);
         drawStroked( playerJson.username, playerJson.x - offsetX, playerJson.y - offsetY )
+
+        const {x, y} = getNewPos(playerJson.x, playerJson.y, playerJson.moving, playerJson.sprinting);
+        players[player].x = x;
+        players[player].y = y;
     }
 }
 
@@ -431,8 +472,6 @@ function getCurrentImgOfTexture(textureName, viewOnly){
     }
     return img
 }
-
-let currentMusic = new Audio("assets/music/Gregor Quendel - Schubert - 4 Impromptus, No. 4 - D. 935, Op. 142.mp3.mp3");
 
 function drawObjects(objects){
     let leastDist = {dist: 99999, x: 0, y: 0};
