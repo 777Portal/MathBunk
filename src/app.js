@@ -157,6 +157,37 @@ let placedObjects = []; // stuff that is placed down
 
 const sockets = {};
 
+setInterval(tick, 16.7);
+
+async function tick(){
+  for (let socket of Object.values(sockets)) {
+    let info = socket.request.session.info;
+    if (!info) continue;
+
+    if (socket.request.session.ssocid !== socket.id) // to prevent funny bug where you could just have multiple tabs open at the same time to get money faster :P
+    {
+      socket.emit( 'CloseConn', {reason: 'logged in at another location (tab, page, ect.)'} )
+      return socket.disconnect(true);
+    }
+    
+    pos = info.position
+    console.log(pos)
+    
+    let {sprinting, rows, cols} = pos
+  
+    let oldOffsetX = pos.offsetX
+    let oldOffsetY = pos.offsetY
+  
+    pos.rows = rows
+    pos.cols = cols
+  
+    let {offsetX, offsetY} = getNewOffset(oldOffsetX, oldOffsetY, pos.moving, sprinting)
+  
+    info.position.offsetX = offsetX
+    info.position.offsetY = offsetY
+  }
+}
+
 async function updateUsers() {
   let players = {};
 
@@ -164,7 +195,7 @@ async function updateUsers() {
     let info = socket.request.session.info;
     if (!info) continue;
 
-    players[info.username] = { username: info.username, x: info.position.x, y: info.position.y };
+    players[info.username] = { username: info.username, x: info.position.x, y: info.position.y, moving: info.position.moving, sprinting: info.position.sprinting};
   }
 
   await Promise.all(Object.values(sockets).map(async (socket) => {
@@ -172,7 +203,7 @@ async function updateUsers() {
     if (!info) return;
 
     let closestPlayers = Object.values(players).filter(player => 
-      getDistance(info.position.x, player.x, info.position.y, player.y) <= 10000
+      getDistance(info.position.x, player.x, info.position.y, player.y) <= 5000
     );
 
     socket.emit('UPD', { closestPlayers });
@@ -267,31 +298,10 @@ io.on('connection', async (socket) => {
   inventory = info.inventory
   socket.emit("RECUP", inventory)
 
-  let localInterval = setInterval(async () => {
-    if (session.ssocid !== socket.id) // to prevent funny bug where you could just have multiple tabs open at the same time to get money faster :P
-    {
-      socket.emit( 'CloseConn', {reason: 'logged in at another location (tab, page, ect.)'} )
-      return socket.disconnect(true);
-    }
+  function updatePlayer(){
+    let pos = info.position;
 
-    pos =  info.position
-    let moving = checkIfMoving(pos.direction)
-    let {sprinting, rows, cols} = pos
-    // if (!moving.moved) return;
-
-    let oldOffsetX = pos.offsetX
-    let oldOffsetY = pos.offsetY
-
-    pos.rows = rows
-    pos.cols = cols
-
-    let {offsetX, offsetY} = getNewOffset(oldOffsetX, oldOffsetY, pos.moving, sprinting)
-
-    info.position.offsetX = offsetX
-    info.position.offsetY = offsetY
-
-    let x = pos.x;
-    let y = pos.y;
+    let {x, y, offsetX, offsetY, sprinting, rows, cols} = pos
 
     let serverObjects = getObjects(offsetX,offsetY, rows, cols)
 
@@ -315,13 +325,12 @@ io.on('connection', async (socket) => {
 
     updateUsers();
     socket.emit( 'RENDER', {x, y, offsetX, offsetY, serverObjects, nodesToHide, nearbyObjects});
-  }, 33.33);
+  }
 
   socket.on("MINE", async (arg) => {
     pos = info.position
 
     let nodeLocations = getObjects(pos.offsetX, pos.offsetY, pos.rows, pos.cols);
-    // console.log(JSON.stringify(nodeLocations.trees))
 
     let closest = getClosestObject(nodeLocations, pos.offsetX, pos.offsetY, pos.x, pos.y)
     
@@ -344,11 +353,10 @@ io.on('connection', async (socket) => {
     else problem = katex.renderToString(problemQuestion, { throwOnError: false });
 
     socket.emit("MINE", {closest}, {problemInfo, problem})
-    // console.log(problemJson.questionAnswer)
   });
 
   socket.on("PLCE", (arg) => {
-    let {imgWidth, currentlyHolding, imgHeight} = arg // have to make a better way to do this this is super unsafe
+    let {imgWidth, currentlyHolding, imgHeight} = arg // its not THAT unsafe, right?
     if (!currentlyHolding in placeables) return;
 
     let pos = info.position
@@ -360,7 +368,7 @@ io.on('connection', async (socket) => {
     let locationX = Math.floor(x);
     let locationY = Math.floor(y-imgHeight);
 
-    let costArr = placeables[currentlyHolding].cost;
+    let costArr = placeables[currentlyHolding]?.cost;
 
     for (cost in costArr){
       let price = costArr[cost]
@@ -423,7 +431,7 @@ io.on('connection', async (socket) => {
     pos.x = centerX+offsetX;  
     pos.y = centerY+offsetY;
 
-    updateUsers();
+    updatePlayer();
   })
 
   const socketStatus = {};
@@ -443,7 +451,6 @@ io.on('connection', async (socket) => {
     if (socketStatus[socket.id] === 'disconnecting') {
       delete sockets[socket.id];
       delete socketStatus[socket.id];
-      clearInterval(localInterval)
     }
 
     updateUsers();
